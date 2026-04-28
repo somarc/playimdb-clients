@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PlayIMDB</string>
+    <string name="search_hint">Search movies, shows, titles…</string>
+    <string name="state_idle">Type to search IMDB titles.</string>
+    <string name="state_no_results">No titles found.</string>
+    <string name="state_error">Search failed. Try again.</string>
+    <string name="state_timeout">Search timed out. Try again.</string>
+</resources>

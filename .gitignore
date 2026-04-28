@@ -1,0 +1,14 @@
+# Android
+android-tv/build/
+android-tv/local.properties
+android-tv/.gradle/
+android-tv/app/build/
+*.apk
+*.aab
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.iml
