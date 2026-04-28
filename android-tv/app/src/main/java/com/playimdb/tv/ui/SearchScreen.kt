@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -48,7 +47,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -91,7 +89,6 @@ private val TYPE_LABELS = mapOf(
 fun SearchScreen(
     viewModel: SearchViewModel,
     onResultSelected: (String) -> Unit,
-    onVoiceSearch: () -> Unit,
 ) {
     val query by viewModel.query.collectAsState()
     val state by viewModel.state.collectAsState()
@@ -102,7 +99,6 @@ fun SearchScreen(
         searchFocus.requestFocus()
     }
 
-    // Back key clears the search box (and results); only exits when query is already empty.
     BackHandler(enabled = query.isNotEmpty()) {
         viewModel.onQueryChange("")
         searchFocus.requestFocus()
@@ -114,7 +110,6 @@ fun SearchScreen(
             .background(Background)
             .padding(horizontal = 56.dp, vertical = 36.dp),
     ) {
-        // Header
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "▶",
@@ -139,45 +134,41 @@ fun SearchScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = viewModel::onQueryChange,
-                placeholder = {
-                    Text(
-                        text = "Search movies, shows, titles…",
-                        color = TextMuted,
-                        fontSize = 22.sp,
-                    )
-                },
-                textStyle = TextStyle(color = TextPrimary, fontSize = 22.sp),
-                singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(searchFocus)
-                    // D-pad DOWN from the search field jumps to the first result row.
-                    .focusProperties { down = firstItemFocus },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Accent,
-                    unfocusedBorderColor = Border,
-                    cursorColor = Accent,
-                    focusedContainerColor = Surface,
-                    unfocusedContainerColor = Surface,
-                ),
-                shape = RoundedCornerShape(8.dp),
-            )
+        OutlinedTextField(
+            value = query,
+            onValueChange = viewModel::onQueryChange,
+            placeholder = {
+                Text(
+                    text = "Search movies, shows, titles…",
+                    color = TextMuted,
+                    fontSize = 22.sp,
+                )
+            },
+            textStyle = TextStyle(color = TextPrimary, fontSize = 22.sp),
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(searchFocus)
+                .focusProperties { down = firstItemFocus },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Accent,
+                unfocusedBorderColor = Border,
+                cursorColor = Accent,
+                focusedContainerColor = Surface,
+                unfocusedContainerColor = Surface,
+            ),
+            shape = RoundedCornerShape(8.dp),
+        )
 
-            VoiceButton(
-                onClick = onVoiceSearch,
-                firstItemFocus = firstItemFocus,
-            )
-        }
+        Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(28.dp))
+        Text(
+            text = "Press OK to open the keyboard — use its mic button for voice input",
+            color = TextMuted,
+            fontSize = 14.sp,
+        )
+
+        Spacer(Modifier.height(20.dp))
 
         when (val s = state) {
             SearchUiState.Idle -> CenteredMessage("Type to search IMDB titles.")
@@ -198,62 +189,6 @@ fun SearchScreen(
 }
 
 @Composable
-private fun VoiceButton(
-    onClick: () -> Unit,
-    firstItemFocus: FocusRequester,
-) {
-    var focused by remember { mutableStateOf(false) }
-    val borderWidth by animateDpAsState(
-        targetValue = if (focused) 4.dp else 1.dp,
-        animationSpec = tween(120),
-        label = "voice-border",
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (focused) 1.06f else 1f,
-        animationSpec = tween(140),
-        label = "voice-scale",
-    )
-    val borderColor = if (focused) Accent else Border
-    val bgColor = if (focused) SurfaceFocused else Surface
-    val tint = if (focused) Accent else TextPrimary
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(64.dp)
-            .scale(scale)
-            .clip(RoundedCornerShape(8.dp))
-            .background(bgColor)
-            .border(borderWidth, borderColor, RoundedCornerShape(8.dp))
-            .onFocusChanged { focused = it.isFocused }
-            .focusable()
-            // D-pad DOWN from the mic button also jumps to the first result row.
-            .focusProperties { down = firstItemFocus }
-            .onKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && (
-                        event.key == Key.DirectionCenter ||
-                            event.key == Key.Enter ||
-                            event.key == Key.NumPadEnter
-                        )
-                ) {
-                    onClick()
-                    true
-                } else {
-                    false
-                }
-            }
-            .clickable { onClick() },
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_mic),
-            contentDescription = "Voice search",
-            tint = tint,
-            modifier = Modifier.size(28.dp),
-        )
-    }
-}
-
-@Composable
 private fun CenteredMessage(text: String, isError: Boolean = false) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(
@@ -270,7 +205,6 @@ private fun ResultsList(
     firstItemFocus: FocusRequester,
     onSelected: (String) -> Unit,
 ) {
-    // TvLazyColumn keeps the focused row visible automatically (pivot at 30% from the top).
     TvLazyColumn(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(vertical = 6.dp, horizontal = 4.dp),
@@ -319,8 +253,6 @@ private fun ResultRow(
             .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
-            // Defensive: explicitly handle DPAD_CENTER / Enter so older Fire OS
-            // versions reliably fire selection regardless of clickable() semantics.
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && (
                         event.key == Key.DirectionCenter ||
@@ -337,7 +269,6 @@ private fun ResultRow(
             .clickable { onSelected() }
             .padding(18.dp),
     ) {
-        // Poster
         Box(
             modifier = Modifier
                 .size(width = 70.dp, height = 104.dp)

@@ -46,7 +46,13 @@ SVGs are excluded because the Chrome Web Store only needs the compiled PNGs.
 
 Native Kotlin + Jetpack Compose, MVVM architecture. No Google Play Services dependency.
 
-Key features:
+### Splash screen
+
+A 6-second branded intro plays on launch before the search screen fades in.
+
+<video src="loading.mp4" autoplay loop muted playsinline width="720"></video>
+
+### Features
 - `TvLazyColumn` with explicit D-pad focus traversal (`focusProperties`) for remote-control navigation
 - Animated focus indicators — border grows from 1 dp to 4 dp and the focused row scales up
 - Voice search via `RecognizerIntent` — mic button beside the search field; recognized text drops into the search field automatically
