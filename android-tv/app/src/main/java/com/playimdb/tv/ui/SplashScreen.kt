@@ -9,8 +9,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -28,9 +28,6 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
     val context = LocalContext.current
-    val selectedVideo = remember {
-        listOf(R.raw.loading, R.raw.loading2, R.raw.loading3).random()
-    }
     var finished by remember { mutableStateOf(false) }
 
     fun finishOnce() {
@@ -40,9 +37,9 @@ fun SplashScreen(onFinished: () -> Unit) {
         }
     }
 
-    val player = remember(selectedVideo) {
+    val player = remember {
         ExoPlayer.Builder(context).build().apply {
-            val uri = "android.resource://${context.packageName}/$selectedVideo"
+            val uri = "android.resource://${context.packageName}/${R.raw.loading2}"
             setMediaItem(MediaItem.fromUri(uri))
             prepare()
             playWhenReady = true

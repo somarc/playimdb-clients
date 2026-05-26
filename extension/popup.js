@@ -20,6 +20,7 @@ const TYPE_LABELS = {
 
 let debounceTimer = null;
 let activeController = null;
+let selectedIndex = -1;
 
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
@@ -43,6 +44,7 @@ function hideStatus() {
 
 function clearResults() {
   resultsList.innerHTML = '';
+  selectedIndex = -1;
 }
 
 function titleId(result) {
@@ -55,6 +57,35 @@ function isTitle(result) {
 
 function buildPlayUrl(id) {
   return PLAY_BASE + id;
+}
+
+function resultItems() {
+  return Array.from(resultsList.querySelectorAll('.result-item'));
+}
+
+function updateSelectedResult(nextIndex) {
+  const items = resultItems();
+  if (items.length === 0) {
+    selectedIndex = -1;
+    return;
+  }
+
+  selectedIndex = Math.max(0, Math.min(nextIndex, items.length - 1));
+  items.forEach((item, index) => {
+    const selected = index === selectedIndex;
+    item.classList.toggle('selected', selected);
+    item.setAttribute('aria-selected', selected ? 'true' : 'false');
+    if (selected) {
+      item.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+function openSelectedResult() {
+  const items = resultItems();
+  if (selectedIndex < 0 || selectedIndex >= items.length) return false;
+  items[selectedIndex].click();
+  return true;
 }
 
 function typeLabel(result) {
@@ -105,6 +136,8 @@ function renderResults(suggestions) {
     a.className = 'result-item';
     a.href = playUrl;
     a.title = `Open ${result.l || id} on PlayIMDB`;
+    a.setAttribute('role', 'option');
+    a.setAttribute('aria-selected', 'false');
 
     a.addEventListener('click', (e) => {
       e.preventDefault();
@@ -157,6 +190,8 @@ function renderResults(suggestions) {
     li.appendChild(a);
     resultsList.appendChild(li);
   });
+
+  updateSelectedResult(0);
 }
 
 async function fetchSuggestions(query) {
@@ -164,9 +199,12 @@ async function fetchSuggestions(query) {
   if (!q) return;
 
   if (activeController) {
+    activeController.superseded = true;
     activeController.abort();
   }
   const controller = new AbortController();
+  controller.superseded = false;
+  controller.timedOut = false;
   activeController = controller;
 
   const firstChar = q[0].toLowerCase();
@@ -176,7 +214,10 @@ async function fetchSuggestions(query) {
   showStatus('loading');
   clearResults();
 
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => {
+    controller.timedOut = true;
+    controller.abort();
+  }, FETCH_TIMEOUT_MS);
 
   try {
     const resp = await fetch(url, {
@@ -199,7 +240,7 @@ async function fetchSuggestions(query) {
     renderResults(suggestions);
   } catch (err) {
     if (err.name === 'AbortError') {
-      if (activeController === controller) {
+      if (activeController === controller && controller.timedOut && !controller.superseded) {
         showStatus('Search timed out. Try again.', true);
       }
       return;
@@ -237,7 +278,17 @@ searchInput.addEventListener('input', () => {
 searchInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     clearTimeout(debounceTimer);
+    if (openSelectedResult()) {
+      e.preventDefault();
+      return;
+    }
     onSearch();
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    updateSelectedResult(selectedIndex < 0 ? 0 : selectedIndex + 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    updateSelectedResult(selectedIndex <= 0 ? 0 : selectedIndex - 1);
   }
 });
 

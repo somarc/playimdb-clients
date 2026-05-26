@@ -167,6 +167,12 @@ header {
   background: var(--surface-hover);
 }
 
+.result-item.selected {
+  background: var(--surface-hover);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
 .result-poster {
   width: 36px;
   height: 52px;
