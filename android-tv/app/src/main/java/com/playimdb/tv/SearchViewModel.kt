@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.playimdb.tv.model.TitleResult
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,21 +53,22 @@ class SearchViewModel(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _state.value = SearchUiState.Loading
-            runCatching { repo.suggest(query) }
-                .onSuccess { results ->
-                    _state.value = if (results.isEmpty()) {
-                        SearchUiState.Empty(query)
-                    } else {
-                        SearchUiState.Success(results)
-                    }
+            try {
+                val results = repo.suggest(query)
+                _state.value = if (results.isEmpty()) {
+                    SearchUiState.Empty(query)
+                } else {
+                    SearchUiState.Success(results)
                 }
-                .onFailure { error ->
-                    val msg = when (error) {
-                        is java.io.InterruptedIOException -> "Search timed out. Try again."
-                        else -> "Search failed. Try again."
-                    }
-                    _state.value = SearchUiState.Error(msg)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                val msg = when (error) {
+                    is java.io.InterruptedIOException -> "Search timed out. Try again."
+                    else -> "Search failed. Try again."
                 }
+                _state.value = SearchUiState.Error(msg)
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.playimdb.tv.ui
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +13,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.playimdb.tv.R
 import kotlinx.coroutines.delay
 
+@OptIn(UnstableApi::class)
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
     val context = LocalContext.current

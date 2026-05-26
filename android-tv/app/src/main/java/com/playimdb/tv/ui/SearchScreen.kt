@@ -254,7 +254,7 @@ private fun ResultRow(
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .onKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && (
+                if (event.type == KeyEventType.KeyUp && (
                         event.key == Key.DirectionCenter ||
                             event.key == Key.Enter ||
                             event.key == Key.NumPadEnter
