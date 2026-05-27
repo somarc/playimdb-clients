@@ -114,9 +114,16 @@ fun SearchScreen(
         searchTabFocus.requestFocus()
     }
 
+    LaunchedEffect(mode) {
+        if (mode == HomeMode.Charts) {
+            chartMenuFocus.requestFocus()
+        } else {
+            searchTabFocus.requestFocus()
+        }
+    }
+
     BackHandler(enabled = mode == HomeMode.Charts) {
         mode = HomeMode.Search
-        searchTabFocus.requestFocus()
     }
 
     BackHandler(enabled = mode == HomeMode.Search && query.isNotEmpty()) {
@@ -160,9 +167,6 @@ fun SearchScreen(
                 mode = nextMode
                 if (nextMode == HomeMode.Charts) {
                     viewModel.loadChart(selectedChart)
-                    chartMenuFocus.requestFocus()
-                } else {
-                    searchTabFocus.requestFocus()
                 }
             },
             searchTabFocus = searchTabFocus,
