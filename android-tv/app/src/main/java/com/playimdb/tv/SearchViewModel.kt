@@ -1,6 +1,7 @@
 package com.playimdb.tv
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.playimdb.tv.model.TitleResult
 import kotlinx.coroutines.Job
@@ -19,10 +20,19 @@ sealed interface SearchUiState {
     data class Error(val message: String) : SearchUiState
 }
 
+sealed interface ChartUiState {
+    data object Idle : ChartUiState
+    data class Loading(val kind: ChartKind) : ChartUiState
+    data class Success(val data: ChartData) : ChartUiState
+    data class Error(val kind: ChartKind, val message: String) : ChartUiState
+}
+
 class SearchViewModel(
-    private val repo: ImdbRepository = ImdbRepository(),
-    private val debounceMs: Long = 350L,
-) : ViewModel() {
+    application: Application,
+) : AndroidViewModel(application) {
+    private val repo = ImdbRepository()
+    private val chartRepo = ChartRepository(application)
+    private val debounceMs = 350L
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -30,8 +40,25 @@ class SearchViewModel(
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
 
+    private val _chartState = MutableStateFlow<ChartUiState>(ChartUiState.Idle)
+    val chartState: StateFlow<ChartUiState> = _chartState.asStateFlow()
+
+    private val _selectedChart = MutableStateFlow(ChartKind.TopMovies)
+    val selectedChart: StateFlow<ChartKind> = _selectedChart.asStateFlow()
+
     private var debounceJob: Job? = null
     private var searchJob: Job? = null
+    private var chartJob: Job? = null
+
+    init {
+        prefetchCharts()
+    }
+
+    fun prefetchCharts() {
+        viewModelScope.launch {
+            chartRepo.prefetchAll()
+        }
+    }
 
     fun onQueryChange(newQuery: String) {
         _query.value = newQuery
@@ -68,6 +95,21 @@ class SearchViewModel(
                     else -> "Search failed. Try again."
                 }
                 _state.value = SearchUiState.Error(msg)
+            }
+        }
+    }
+
+    fun loadChart(kind: ChartKind = _selectedChart.value, forceRefresh: Boolean = false) {
+        _selectedChart.value = kind
+        chartJob?.cancel()
+        chartJob = viewModelScope.launch {
+            _chartState.value = ChartUiState.Loading(kind)
+            try {
+                _chartState.value = ChartUiState.Success(chartRepo.getChart(kind, forceRefresh = forceRefresh))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                _chartState.value = ChartUiState.Error(kind, "Could not load ${kind.label}. Try again.")
             }
         }
     }

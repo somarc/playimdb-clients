@@ -84,7 +84,7 @@ class ImdbRepository(
     }
 }
 
-private suspend fun OkHttpClient.executeCancellable(request: Request): Response =
+suspend fun OkHttpClient.executeCancellable(request: Request): Response =
     suspendCancellableCoroutine { continuation ->
         val call = newCall(request)
         continuation.invokeOnCancellation { call.cancel() }

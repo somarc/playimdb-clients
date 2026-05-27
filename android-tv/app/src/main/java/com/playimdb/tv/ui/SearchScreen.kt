@@ -56,6 +56,8 @@ import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.itemsIndexed
 import coil.compose.AsyncImage
+import com.playimdb.tv.ChartKind
+import com.playimdb.tv.ChartUiState
 import com.playimdb.tv.R
 import com.playimdb.tv.SearchUiState
 import com.playimdb.tv.SearchViewModel
@@ -84,6 +86,11 @@ private val TYPE_LABELS = mapOf(
     "podcastEpisode" to "PODCAST EP",
 )
 
+private enum class HomeMode {
+    Search,
+    Charts,
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -92,14 +99,23 @@ fun SearchScreen(
 ) {
     val query by viewModel.query.collectAsState()
     val state by viewModel.state.collectAsState()
+    val chartState by viewModel.chartState.collectAsState()
+    val selectedChart by viewModel.selectedChart.collectAsState()
+    var mode by remember { mutableStateOf(HomeMode.Search) }
     val searchFocus = remember { FocusRequester() }
     val firstItemFocus = remember { FocusRequester() }
+    val chartsFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         searchFocus.requestFocus()
     }
 
-    BackHandler(enabled = query.isNotEmpty()) {
+    BackHandler(enabled = mode == HomeMode.Charts) {
+        mode = HomeMode.Search
+        searchFocus.requestFocus()
+    }
+
+    BackHandler(enabled = mode == HomeMode.Search && query.isNotEmpty()) {
         viewModel.onQueryChange("")
         searchFocus.requestFocus()
     }
@@ -134,57 +150,174 @@ fun SearchScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        OutlinedTextField(
-            value = query,
-            onValueChange = viewModel::onQueryChange,
-            placeholder = {
-                Text(
-                    text = "Search movies, shows, titles…",
-                    color = TextMuted,
-                    fontSize = 22.sp,
-                )
-            },
-            textStyle = TextStyle(color = TextPrimary, fontSize = 22.sp),
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(searchFocus)
-                .focusProperties { down = firstItemFocus },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Accent,
-                unfocusedBorderColor = Border,
-                cursorColor = Accent,
-                focusedContainerColor = Surface,
-                unfocusedContainerColor = Surface,
-            ),
-            shape = RoundedCornerShape(8.dp),
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = "Press OK to open the keyboard — use its mic button for voice input",
-            color = TextMuted,
-            fontSize = 14.sp,
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        when (val s = state) {
-            SearchUiState.Idle -> CenteredMessage("Type to search IMDB titles.")
-            SearchUiState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Accent)
+        ModeTabs(
+            selected = mode,
+            onSelected = { nextMode ->
+                mode = nextMode
+                if (nextMode == HomeMode.Charts) {
+                    viewModel.loadChart(selectedChart)
                 }
+            },
+            chartsFocus = chartsFocus,
+        )
+
+        Spacer(Modifier.height(18.dp))
+
+        if (mode == HomeMode.Search) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = viewModel::onQueryChange,
+                placeholder = {
+                    Text(
+                        text = "Search movies, shows, titles…",
+                        color = TextMuted,
+                        fontSize = 22.sp,
+                    )
+                },
+                textStyle = TextStyle(color = TextPrimary, fontSize = 22.sp),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(searchFocus)
+                    .focusProperties { down = firstItemFocus },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Accent,
+                    unfocusedBorderColor = Border,
+                    cursorColor = Accent,
+                    focusedContainerColor = Surface,
+                    unfocusedContainerColor = Surface,
+                ),
+                shape = RoundedCornerShape(8.dp),
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "Press OK to open the keyboard — use its mic button for voice input",
+                color = TextMuted,
+                fontSize = 14.sp,
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            when (val s = state) {
+                SearchUiState.Idle -> CenteredMessage("Type to search IMDB titles.")
+                SearchUiState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Accent)
+                    }
+                }
+                is SearchUiState.Empty -> CenteredMessage("No titles found for \"${s.query}\".")
+                is SearchUiState.Error -> CenteredMessage(s.message, isError = true)
+                is SearchUiState.Success -> ResultsList(
+                    results = s.results,
+                    firstItemFocus = firstItemFocus,
+                    onSelected = onResultSelected,
+                )
             }
-            is SearchUiState.Empty -> CenteredMessage("No titles found for \"${s.query}\".")
-            is SearchUiState.Error -> CenteredMessage(s.message, isError = true)
-            is SearchUiState.Success -> ResultsList(
-                results = s.results,
+        } else {
+            ChartScreen(
+                selectedChart = selectedChart,
+                chartState = chartState,
                 firstItemFocus = firstItemFocus,
+                onChartSelected = { viewModel.loadChart(it) },
                 onSelected = onResultSelected,
             )
         }
+    }
+}
+
+@Composable
+private fun ModeTabs(
+    selected: HomeMode,
+    onSelected: (HomeMode) -> Unit,
+    chartsFocus: FocusRequester,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ModeTab(
+            label = "Search",
+            selected = selected == HomeMode.Search,
+            onSelected = { onSelected(HomeMode.Search) },
+        )
+        ModeTab(
+            label = "Charts",
+            selected = selected == HomeMode.Charts,
+            modifier = Modifier.focusRequester(chartsFocus),
+            onSelected = { onSelected(HomeMode.Charts) },
+        )
+    }
+}
+
+@Composable
+private fun ModeTab(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onSelected: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Text(
+        text = label,
+        color = if (selected || focused) Background else TextPrimary,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (selected || focused) Accent else Surface)
+            .border(1.dp, if (focused) AccentOrange else Border, RoundedCornerShape(6.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .onKeyEvent { event ->
+                if (event.type == KeyEventType.KeyUp && (
+                        event.key == Key.DirectionCenter ||
+                            event.key == Key.Enter ||
+                            event.key == Key.NumPadEnter
+                        )
+                ) {
+                    onSelected()
+                    true
+                } else {
+                    false
+                }
+            }
+            .clickable { onSelected() }
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+    )
+}
+
+@Composable
+private fun ChartScreen(
+    selectedChart: ChartKind,
+    chartState: ChartUiState,
+    firstItemFocus: FocusRequester,
+    onChartSelected: (ChartKind) -> Unit,
+    onSelected: (String) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ChartKind.entries.forEach { kind ->
+            ModeTab(
+                label = kind.label,
+                selected = selectedChart == kind,
+                onSelected = { onChartSelected(kind) },
+            )
+        }
+    }
+
+    Spacer(Modifier.height(20.dp))
+
+    when (chartState) {
+        ChartUiState.Idle -> CenteredMessage("Choose a chart.")
+        is ChartUiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Accent)
+            }
+        }
+        is ChartUiState.Error -> CenteredMessage(chartState.message, isError = true)
+        is ChartUiState.Success -> ResultsList(
+            results = chartState.data.titles,
+            firstItemFocus = firstItemFocus,
+            onSelected = onSelected,
+        )
     }
 }
 

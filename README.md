@@ -55,11 +55,14 @@ The splash exits when playback ends, with a 20-second fallback timeout.
 
 - TV-focused Compose UI.
 - `TvLazyColumn` result list with D-pad focus traversal.
+- Live Charts mode for Top Movies, Top TV, Popular Movies, and Popular TV.
 - Animated focus indicators for remote-control navigation.
 - Search input supports the platform keyboard, including its mic button when available.
 - Back clears the search and returns focus to the input field.
 - Results open in the browser via an `ACTION_VIEW` intent.
 - Network searches are cancellable so stale requests do not keep running after new input.
+
+Charts are fetched directly from IMDb on the device and cached locally for 24 hours. The repo does not publish IMDb-derived chart JSON.
 
 ### Build Config
 
