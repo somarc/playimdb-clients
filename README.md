@@ -68,6 +68,7 @@ Charts are fetched directly from IMDb on the device and cached locally for 24 ho
 
 | Setting | Value |
 |---|---|
+| versionName / versionCode | 1.1.0 / 2 |
 | compileSdk / targetSdk | 34 |
 | minSdk | 21 |
 | Compose Compiler | 1.5.8 |

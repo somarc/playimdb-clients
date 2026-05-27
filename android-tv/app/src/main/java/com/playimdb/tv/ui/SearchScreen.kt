@@ -57,6 +57,7 @@ import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.itemsIndexed
 import coil.compose.AsyncImage
+import com.playimdb.tv.BuildConfig
 import com.playimdb.tv.ChartKind
 import com.playimdb.tv.ChartUiState
 import com.playimdb.tv.R
@@ -137,25 +138,38 @@ fun SearchScreen(
             .background(Background)
             .padding(horizontal = 56.dp, vertical = 36.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "▶",
+                    color = AccentOrange,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Play",
+                    color = TextPrimary,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "IMDB",
+                    color = Accent,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
             Text(
-                text = "▶",
-                color = AccentOrange,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = "Play",
-                color = TextPrimary,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "IMDB",
-                color = Accent,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
+                text = "v${BuildConfig.VERSION_NAME}",
+                color = TextMuted,
+                fontSize = 14.sp,
             )
         }
 
