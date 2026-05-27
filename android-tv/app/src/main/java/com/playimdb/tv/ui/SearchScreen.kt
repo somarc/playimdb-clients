@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -106,6 +107,7 @@ fun SearchScreen(
     val searchTabFocus = remember { FocusRequester() }
     val searchFocus = remember { FocusRequester() }
     val firstItemFocus = remember { FocusRequester() }
+    val chartMenuFocus = remember { FocusRequester() }
     val chartsFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -158,6 +160,9 @@ fun SearchScreen(
                 mode = nextMode
                 if (nextMode == HomeMode.Charts) {
                     viewModel.loadChart(selectedChart)
+                    chartMenuFocus.requestFocus()
+                } else {
+                    searchTabFocus.requestFocus()
                 }
             },
             searchTabFocus = searchTabFocus,
@@ -223,6 +228,7 @@ fun SearchScreen(
             ChartScreen(
                 selectedChart = selectedChart,
                 chartState = chartState,
+                chartMenuFocus = chartMenuFocus,
                 firstItemFocus = firstItemFocus,
                 onChartSelected = { viewModel.loadChart(it) },
                 onSelected = onResultSelected,
@@ -314,36 +320,49 @@ private fun ModeTab(
 private fun ChartScreen(
     selectedChart: ChartKind,
     chartState: ChartUiState,
+    chartMenuFocus: FocusRequester,
     firstItemFocus: FocusRequester,
     onChartSelected: (ChartKind) -> Unit,
     onSelected: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ChartKind.entries.forEach { kind ->
-            ModeTab(
-                label = kind.label,
-                selected = selectedChart == kind,
-                modifier = Modifier.focusProperties { down = firstItemFocus },
-                onSelected = { onChartSelected(kind) },
-            )
-        }
-    }
-
-    Spacer(Modifier.height(20.dp))
-
-    when (chartState) {
-        ChartUiState.Idle -> CenteredMessage("Choose a chart.")
-        is ChartUiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Accent)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(22.dp),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.widthIn(min = 190.dp, max = 230.dp),
+        ) {
+            ChartKind.entries.forEachIndexed { index, kind ->
+                ModeTab(
+                    label = kind.label,
+                    selected = selectedChart == kind,
+                    modifier = Modifier
+                        .then(if (index == 0) Modifier.focusRequester(chartMenuFocus) else Modifier)
+                        .fillMaxWidth()
+                        .focusProperties { right = firstItemFocus },
+                    onSelected = { onChartSelected(kind) },
+                )
             }
         }
-        is ChartUiState.Error -> CenteredMessage(chartState.message, isError = true)
-        is ChartUiState.Success -> ResultsList(
-            results = chartState.data.titles,
-            firstItemFocus = firstItemFocus,
-            onSelected = onSelected,
-        )
+
+        Box(Modifier.weight(1f)) {
+            when (chartState) {
+                ChartUiState.Idle -> CenteredMessage("Choose a chart.")
+                is ChartUiState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Accent)
+                    }
+                }
+                is ChartUiState.Error -> CenteredMessage(chartState.message, isError = true)
+                is ChartUiState.Success -> ResultsList(
+                    results = chartState.data.titles,
+                    firstItemFocus = firstItemFocus,
+                    leftFocus = chartMenuFocus,
+                    onSelected = onSelected,
+                )
+            }
+        }
     }
 }
 
@@ -362,6 +381,7 @@ private fun CenteredMessage(text: String, isError: Boolean = false) {
 private fun ResultsList(
     results: List<TitleResult>,
     firstItemFocus: FocusRequester,
+    leftFocus: FocusRequester? = null,
     onSelected: (String) -> Unit,
 ) {
     TvLazyColumn(
@@ -371,7 +391,10 @@ private fun ResultsList(
         modifier = Modifier.fillMaxSize(),
     ) {
         itemsIndexed(items = results, key = { _, r -> r.id }) { index, result ->
-            val rowMod = if (index == 0) Modifier.focusRequester(firstItemFocus) else Modifier
+            var rowMod = if (index == 0) Modifier.focusRequester(firstItemFocus) else Modifier
+            if (leftFocus != null) {
+                rowMod = rowMod.focusProperties { left = leftFocus }
+            }
             ResultRow(
                 result = result,
                 modifier = rowMod,
