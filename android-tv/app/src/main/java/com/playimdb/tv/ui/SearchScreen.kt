@@ -102,17 +102,18 @@ fun SearchScreen(
     val chartState by viewModel.chartState.collectAsState()
     val selectedChart by viewModel.selectedChart.collectAsState()
     var mode by remember { mutableStateOf(HomeMode.Search) }
+    val searchTabFocus = remember { FocusRequester() }
     val searchFocus = remember { FocusRequester() }
     val firstItemFocus = remember { FocusRequester() }
     val chartsFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
-        searchFocus.requestFocus()
+        searchTabFocus.requestFocus()
     }
 
     BackHandler(enabled = mode == HomeMode.Charts) {
         mode = HomeMode.Search
-        searchFocus.requestFocus()
+        searchTabFocus.requestFocus()
     }
 
     BackHandler(enabled = mode == HomeMode.Search && query.isNotEmpty()) {
@@ -158,6 +159,8 @@ fun SearchScreen(
                     viewModel.loadChart(selectedChart)
                 }
             },
+            searchTabFocus = searchTabFocus,
+            searchFocus = searchFocus,
             chartsFocus = chartsFocus,
         )
 
@@ -231,12 +234,17 @@ fun SearchScreen(
 private fun ModeTabs(
     selected: HomeMode,
     onSelected: (HomeMode) -> Unit,
+    searchTabFocus: FocusRequester,
+    searchFocus: FocusRequester,
     chartsFocus: FocusRequester,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         ModeTab(
             label = "Search",
             selected = selected == HomeMode.Search,
+            modifier = Modifier
+                .focusRequester(searchTabFocus)
+                .focusProperties { down = searchFocus },
             onSelected = { onSelected(HomeMode.Search) },
         )
         ModeTab(
@@ -298,6 +306,7 @@ private fun ChartScreen(
             ModeTab(
                 label = kind.label,
                 selected = selectedChart == kind,
+                modifier = Modifier.focusProperties { down = firstItemFocus },
                 onSelected = { onChartSelected(kind) },
             )
         }
