@@ -37,7 +37,7 @@ body {
 header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border);
 }
@@ -62,6 +62,11 @@ header {
 
 .logo-imdb {
   color: var(--accent);
+}
+
+.version {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .mode-tabs {
