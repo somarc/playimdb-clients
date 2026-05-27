@@ -64,11 +64,55 @@ header {
   color: var(--accent);
 }
 
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.mode-tab,
+.chart-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+}
+
+.mode-tab.active,
+.chart-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+.mode-tab:focus,
+.chart-tab:focus {
+  border-color: #42d9ff;
+  outline: 1px solid #42d9ff;
+}
+
 .search-bar {
   display: flex;
   align-items: center;
   gap: 0;
   padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-bar.hidden,
+.chart-bar.hidden {
+  display: none;
+}
+
+.chart-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border);
 }
 

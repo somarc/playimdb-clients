@@ -1,8 +1,33 @@
 'use strict';
 
 const IMDB_SUGGEST_BASE = 'https://v2.sg.media-imdb.com/suggestion/';
+const IMDB_GRAPHQL_URL = 'https://caching.graphql.imdb.com/';
 const PLAY_BASE = 'https://playimdb.com/title/';
 const FETCH_TIMEOUT_MS = 8000;
+const CHART_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+const CHART_QUERY = `
+  query Chart($first: Int!, $chartType: ChartTitleType!) {
+    chartTitles(first: $first, chart: {chartType: $chartType}) {
+      edges {
+        node {
+          id
+          titleText { text }
+          releaseYear { year }
+          primaryImage { url }
+          titleType { id text }
+        }
+      }
+    }
+  }
+`;
+
+const CHARTS = {
+  'top250-movies': { label: 'Top Movies', chartType: 'TOP_RATED_MOVIES', limit: 250 },
+  'top250-tv': { label: 'Top TV', chartType: 'TOP_RATED_TV_SHOWS', limit: 250 },
+  'popular-movies': { label: 'Popular Movies', chartType: 'MOST_POPULAR_MOVIES', limit: 100 },
+  'popular-tv': { label: 'Popular TV', chartType: 'MOST_POPULAR_TV_SHOWS', limit: 100 },
+};
 
 const TYPE_LABELS = {
   feature: 'Movie',
@@ -21,9 +46,16 @@ const TYPE_LABELS = {
 let debounceTimer = null;
 let activeController = null;
 let selectedIndex = -1;
+let mode = 'search';
+let selectedChart = 'top250-movies';
 
 const searchInput = document.getElementById('search-input');
 const searchBtn = document.getElementById('search-btn');
+const searchTab = document.getElementById('search-tab');
+const chartsTab = document.getElementById('charts-tab');
+const searchBar = document.querySelector('.search-bar');
+const chartBar = document.getElementById('chart-bar');
+const chartTabs = Array.from(document.querySelectorAll('.chart-tab'));
 const resultsList = document.getElementById('results');
 const statusEl = document.getElementById('status');
 
@@ -90,15 +122,17 @@ function openSelectedResult() {
 
 function typeLabel(result) {
   if (result.qid) return TYPE_LABELS[result.qid] || result.qid;
+  if (result.type) return TYPE_LABELS[result.type] || result.type;
   return '';
 }
 
 function posterEl(result) {
-  if (result.i && result.i.imageUrl) {
+  const posterUrl = result.posterUrl || (result.i && result.i.imageUrl);
+  if (posterUrl) {
     const img = document.createElement('img');
     img.className = 'result-poster';
-    img.src = result.i.imageUrl;
-    img.alt = result.l || '';
+    img.src = posterUrl;
+    img.alt = result.title || result.l || '';
     img.loading = 'lazy';
     img.onerror = () => {
       const placeholder = document.createElement('div');
@@ -152,16 +186,17 @@ function renderResults(suggestions) {
 
     const titleDiv = document.createElement('div');
     titleDiv.className = 'result-title';
-    titleDiv.textContent = result.l || id;
+    titleDiv.textContent = result.title || result.l || id;
     info.appendChild(titleDiv);
 
     const meta = document.createElement('div');
     meta.className = 'result-meta';
 
-    if (result.y) {
+    const resultYear = result.year || result.yr || result.y;
+    if (resultYear) {
       const year = document.createElement('span');
       year.className = 'result-year';
-      year.textContent = result.yr || result.y;
+      year.textContent = resultYear;
       meta.appendChild(year);
     }
 
@@ -192,6 +227,115 @@ function renderResults(suggestions) {
   });
 
   updateSelectedResult(0);
+}
+
+function normalizeChartItem(edge, index) {
+  const node = edge && edge.node;
+  if (!node || !node.id) return null;
+  return {
+    id: node.id,
+    title: node.titleText && node.titleText.text ? node.titleText.text : node.id,
+    year: node.releaseYear && node.releaseYear.year ? String(node.releaseYear.year) : '',
+    type: node.titleType && node.titleType.id ? node.titleType.id : '',
+    posterUrl: node.primaryImage && node.primaryImage.url ? node.primaryImage.url : '',
+    rank: index + 1,
+  };
+}
+
+function chartCacheKey(chartKey) {
+  return `playimdb.chart.${chartKey}`;
+}
+
+function readChartCache(chartKey) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(chartCacheKey(chartKey)) || 'null');
+    if (!cached || !Array.isArray(cached.items)) return null;
+    if (Date.now() - cached.fetchedAtMs > CHART_CACHE_TTL_MS) return null;
+    return cached.items;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeChartCache(chartKey, items) {
+  localStorage.setItem(chartCacheKey(chartKey), JSON.stringify({
+    fetchedAtMs: Date.now(),
+    items,
+  }));
+}
+
+async function fetchChart(chartKey, forceRefresh = false) {
+  const chart = CHARTS[chartKey];
+  if (!chart) return;
+
+  if (!forceRefresh) {
+    const cached = readChartCache(chartKey);
+    if (cached) {
+      renderResults(cached);
+      return;
+    }
+  }
+
+  showStatus('loading');
+  clearResults();
+
+  try {
+    const resp = await fetch(IMDB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: CHART_QUERY,
+        variables: {
+          first: chart.limit,
+          chartType: chart.chartType,
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      showStatus(`Could not load ${chart.label}. Try again.`, true);
+      return;
+    }
+
+    const data = await resp.json();
+    const edges = (((data.data || {}).chartTitles || {}).edges || []);
+    const items = edges.map(normalizeChartItem).filter(Boolean);
+    writeChartCache(chartKey, items);
+    renderResults(items);
+  } catch (_) {
+    showStatus(`Could not load ${chart.label}. Try again.`, true);
+  }
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+  const chartsMode = mode === 'charts';
+  searchTab.classList.toggle('active', !chartsMode);
+  chartsTab.classList.toggle('active', chartsMode);
+  searchTab.setAttribute('aria-selected', chartsMode ? 'false' : 'true');
+  chartsTab.setAttribute('aria-selected', chartsMode ? 'true' : 'false');
+  searchBar.classList.toggle('hidden', chartsMode);
+  chartBar.classList.toggle('hidden', !chartsMode);
+  clearResults();
+  hideStatus();
+
+  if (chartsMode) {
+    fetchChart(selectedChart);
+  } else {
+    searchInput.focus();
+    onSearch();
+  }
+}
+
+function setSelectedChart(chartKey) {
+  selectedChart = chartKey;
+  chartTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.chart === chartKey);
+  });
+  fetchChart(chartKey);
 }
 
 async function fetchSuggestions(query) {
@@ -295,6 +439,13 @@ searchInput.addEventListener('keydown', (e) => {
 searchBtn.addEventListener('click', () => {
   clearTimeout(debounceTimer);
   onSearch();
+});
+
+searchTab.addEventListener('click', () => setMode('search'));
+chartsTab.addEventListener('click', () => setMode('charts'));
+
+chartTabs.forEach((tab) => {
+  tab.addEventListener('click', () => setSelectedChart(tab.dataset.chart));
 });
 
 searchInput.focus();

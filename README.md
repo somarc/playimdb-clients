@@ -28,6 +28,8 @@ The PlayIMDB icon appears in the browser toolbar. Pin it for quick access.
 - Debounced IMDB title search.
 - Cancels stale in-flight searches while typing.
 - Arrow up/down selects results; Enter opens the selected result.
+- Charts tab for Top Movies, Top TV, Popular Movies, and Popular TV.
+- Charts are fetched directly from IMDb and cached in the browser for 24 hours.
 - Clicking a result opens `playimdb.com` in a new tab.
 
 ### Package

@@ -15,6 +15,11 @@
       </div>
     </header>
 
+    <div class="mode-tabs" role="tablist">
+      <button id="search-tab" class="mode-tab active" type="button" role="tab" aria-selected="true">Search</button>
+      <button id="charts-tab" class="mode-tab" type="button" role="tab" aria-selected="false">Charts</button>
+    </div>
+
     <div class="search-bar">
       <input
         type="text"
@@ -29,6 +34,13 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </button>
+    </div>
+
+    <div id="chart-bar" class="chart-bar hidden" role="tablist">
+      <button class="chart-tab active" type="button" data-chart="top250-movies">Top Movies</button>
+      <button class="chart-tab" type="button" data-chart="top250-tv">Top TV</button>
+      <button class="chart-tab" type="button" data-chart="popular-movies">Popular Movies</button>
+      <button class="chart-tab" type="button" data-chart="popular-tv">Popular TV</button>
     </div>
 
     <div id="status" class="status hidden"></div>

@@ -18,6 +18,7 @@
     "128": "icons/icon128.png"
   },
   "host_permissions": [
+    "https://caching.graphql.imdb.com/*",
     "https://v2.sg.media-imdb.com/*"
   ],
   "permissions": []
