@@ -14,5 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "playimdb-tv"
+rootProject.name = "playimdb-clients"
 include(":app")
+include(":mobile")
+project(":mobile").projectDir = file("../android-mobile/app")

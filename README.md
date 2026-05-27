@@ -6,6 +6,7 @@ Two small clients that search IMDB titles and open them on **playimdb.com**.
 |---|---|---|
 | Chrome extension | [`extension/`](./extension) | Desktop browser, Manifest V3 popup |
 | Android TV app | [`android-tv/`](./android-tv) | Amazon Fire TV / Android TV sideload |
+| Android mobile app | [`android-mobile/`](./android-mobile) | Android phone / tablet sideload |
 
 Both clients query the IMDB suggestion API (`v2.sg.media-imdb.com/suggestion/...`) with a 350 ms debounce and open the selected title at `https://playimdb.com/title/<id>`.
 
@@ -135,5 +136,44 @@ adb -s 192.168.0.109:5555 uninstall com.playimdb.tv
 - [`android-tv/app/src/main/java/com/playimdb/tv/ui/SearchScreen.kt`](./android-tv/app/src/main/java/com/playimdb/tv/ui/SearchScreen.kt) - Compose search UI.
 - [`android-tv/app/src/main/java/com/playimdb/tv/ui/SplashScreen.kt`](./android-tv/app/src/main/java/com/playimdb/tv/ui/SplashScreen.kt) - splash video playback.
 - [`android-tv/app/src/main/AndroidManifest.xml`](./android-tv/app/src/main/AndroidManifest.xml) - launcher and app declarations.
+
+## Android Mobile App
+
+Native Kotlin + Jetpack Compose phone/tablet app. It shares the same product behavior as the TV app without the TV remote focus model.
+
+### Features
+
+- Touch-first Search and Charts tabs.
+- Debounced IMDB title search.
+- Live Charts mode for Top Movies, Top TV, Popular Movies, and Popular TV.
+- Charts are fetched directly from IMDb and cached locally for 24 hours.
+- Results open in the browser at `playimdb.com/title/<id>`.
+
+### Build
+
+Use the existing Gradle wrapper from the Android TV project root:
+
+```bash
+cd android-tv
+./gradlew :mobile:assembleDebug
+```
+
+Output:
+
+```text
+android-mobile/app/build/outputs/apk/debug/mobile-debug.apk
+```
+
+Run lint and build:
+
+```bash
+./gradlew :mobile:lintDebug :mobile:assembleDebug
+```
+
+Install on a connected Android phone:
+
+```bash
+adb install -r ../android-mobile/app/build/outputs/apk/debug/mobile-debug.apk
+```
 
 Personal-use project. Not affiliated with IMDB or playimdb.com.
