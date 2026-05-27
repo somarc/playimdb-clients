@@ -66,6 +66,7 @@ import com.playimdb.tv.ui.theme.Accent
 import com.playimdb.tv.ui.theme.AccentOrange
 import com.playimdb.tv.ui.theme.Background
 import com.playimdb.tv.ui.theme.Border
+import com.playimdb.tv.ui.theme.FocusBlue
 import com.playimdb.tv.ui.theme.Surface
 import com.playimdb.tv.ui.theme.SurfaceFocused
 import com.playimdb.tv.ui.theme.TextMuted
@@ -264,15 +265,31 @@ private fun ModeTab(
     onSelected: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val tabScale by animateFloatAsState(
+        targetValue = if (focused) 1.08f else 1f,
+        animationSpec = tween(120),
+        label = "tab-scale",
+    )
+    val bgColor = when {
+        focused -> SurfaceFocused
+        selected -> Accent
+        else -> Surface
+    }
+    val textColor = when {
+        focused -> TextPrimary
+        selected -> Background
+        else -> TextPrimary
+    }
     Text(
         text = label,
-        color = if (selected || focused) Background else TextPrimary,
+        color = textColor,
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold,
         modifier = modifier
+            .scale(tabScale)
             .clip(RoundedCornerShape(6.dp))
-            .background(if (selected || focused) Accent else Surface)
-            .border(1.dp, if (focused) AccentOrange else Border, RoundedCornerShape(6.dp))
+            .background(bgColor)
+            .border(if (focused) 4.dp else 1.dp, if (focused) FocusBlue else Border, RoundedCornerShape(6.dp))
             .onFocusChanged { focused = it.isFocused }
             .focusable()
             .onKeyEvent { event ->
@@ -382,7 +399,7 @@ private fun ResultRow(
         animationSpec = tween(140),
         label = "row-scale",
     )
-    val borderColor = if (focused) Accent else Border
+    val borderColor = if (focused) FocusBlue else Border
     val bgColor = if (focused) SurfaceFocused else Surface
 
     Row(
