@@ -25,6 +25,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
@@ -54,7 +56,11 @@ class MainActivity : ComponentActivity() {
                     } else {
                         SearchScreen(
                             viewModel = viewModel,
-                            onResultSelected = { id -> openInBrowser("https://playimdb.com/title/$id") },
+                            onResultSelected = { result ->
+                                lifecycleScope.launch {
+                                    openInBrowser(PlayUrlResolver.titleUrl(result.id, result.type))
+                                }
+                            },
                         )
                     }
                 }

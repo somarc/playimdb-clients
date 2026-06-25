@@ -59,6 +59,7 @@ import androidx.tv.foundation.lazy.list.itemsIndexed
 import coil.compose.AsyncImage
 import com.playimdb.tv.BuildConfig
 import com.playimdb.tv.ChartKind
+import com.playimdb.tv.PlayUrlResolver
 import com.playimdb.tv.ChartUiState
 import com.playimdb.tv.R
 import com.playimdb.tv.SearchUiState
@@ -98,7 +99,7 @@ private enum class HomeMode {
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel,
-    onResultSelected: (String) -> Unit,
+    onResultSelected: (TitleResult) -> Unit,
 ) {
     val query by viewModel.query.collectAsState()
     val state by viewModel.state.collectAsState()
@@ -341,7 +342,7 @@ private fun ChartScreen(
     chartMenuFocus: FocusRequester,
     firstItemFocus: FocusRequester,
     onChartSelected: (ChartKind) -> Unit,
-    onSelected: (String) -> Unit,
+    onSelected: (TitleResult) -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(22.dp),
@@ -400,7 +401,7 @@ private fun ResultsList(
     results: List<TitleResult>,
     firstItemFocus: FocusRequester,
     leftFocus: FocusRequester? = null,
-    onSelected: (String) -> Unit,
+    onSelected: (TitleResult) -> Unit,
 ) {
     TvLazyColumn(
         verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -416,7 +417,7 @@ private fun ResultsList(
             ResultRow(
                 result = result,
                 modifier = rowMod,
-                onSelected = { onSelected(result.id) },
+                onSelected = { onSelected(result) },
             )
         }
     }
@@ -531,7 +532,7 @@ private fun ResultRow(
 
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "playimdb.com/title/${result.id}",
+                text = PlayUrlResolver.displayPath(result.id, result.type),
                 color = Accent,
                 fontSize = 16.sp,
                 maxLines = 1,

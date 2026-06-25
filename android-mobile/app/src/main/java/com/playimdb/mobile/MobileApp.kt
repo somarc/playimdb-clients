@@ -55,7 +55,7 @@ private enum class Mode { Search, Charts }
 @Composable
 fun MobileApp(
     viewModel: MainViewModel = viewModel(),
-    onOpenTitle: (String) -> Unit,
+    onOpenTitle: (TitleResult) -> Unit,
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -112,7 +112,7 @@ private fun SearchContent(
     query: String,
     state: LoadState,
     onQueryChange: (String) -> Unit,
-    onOpenTitle: (String) -> Unit,
+    onOpenTitle: (TitleResult) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -133,7 +133,7 @@ private fun ChartsContent(
     selectedChart: ChartKind,
     state: LoadState,
     onChartSelected: (ChartKind) -> Unit,
-    onOpenTitle: (String) -> Unit,
+    onOpenTitle: (TitleResult) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         LazyRow(
@@ -163,7 +163,11 @@ private fun ChartChip(kind: ChartKind, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StateContent(state: LoadState, idleMessage: String, onOpenTitle: (String) -> Unit) {
+private fun StateContent(
+    state: LoadState,
+    idleMessage: String,
+    onOpenTitle: (TitleResult) -> Unit,
+) {
     when (state) {
         LoadState.Idle -> CenterMessage(idleMessage)
         LoadState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -183,14 +187,14 @@ private fun CenterMessage(message: String, color: Color = TextMuted) {
 }
 
 @Composable
-private fun TitleList(results: List<TitleResult>, onOpenTitle: (String) -> Unit) {
+private fun TitleList(results: List<TitleResult>, onOpenTitle: (TitleResult) -> Unit) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
         items(results, key = { it.id }) { result ->
-            TitleRow(result) { onOpenTitle(result.id) }
+            TitleRow(result) { onOpenTitle(result) }
         }
     }
 }
@@ -233,7 +237,7 @@ private fun TitleRow(result: TitleResult, onClick: () -> Unit) {
                 if (result.type != null) Text(result.type.uppercase(), color = TextMuted, fontSize = 12.sp)
             }
             Spacer(Modifier.height(4.dp))
-            Text("playimdb.com/title/${result.id}", color = Accent, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(PlayUrlResolver.displayPath(result.id, result.type), color = Accent, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
