@@ -2,9 +2,7 @@
 
 const IMDB_SUGGEST_BASE = 'https://v2.sg.media-imdb.com/suggestion/';
 const IMDB_GRAPHQL_URL = 'https://caching.graphql.imdb.com/';
-const PLAY_HOST_PRIMARY = 'playimdb.com';
-const PLAY_HOST_FALLBACK = 'streamimdb.ru';
-let playHost = PLAY_HOST_PRIMARY;
+const PLAY_HOST = 'streamimdb.ru';
 const FETCH_TIMEOUT_MS = 8000;
 const CHART_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -89,24 +87,6 @@ function isTitle(result) {
   return result.id && result.id.startsWith('tt');
 }
 
-async function resolvePlayHost() {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
-    await fetch(`https://${PLAY_HOST_PRIMARY}/favicon.ico`, {
-      method: 'HEAD',
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    playHost = PLAY_HOST_PRIMARY;
-  } catch (_) {
-    playHost = PLAY_HOST_FALLBACK;
-  }
-  return playHost;
-}
-
-const playHostPromise = resolvePlayHost();
-
 const TV_TYPES = new Set(['tv', 'tvSeries', 'tvMiniSeries', 'tvSpecial', 'podcastSeries']);
 
 function streamEmbedKind(result) {
@@ -115,10 +95,7 @@ function streamEmbedKind(result) {
 }
 
 function buildPlayUrl(id, result) {
-  if (playHost === PLAY_HOST_FALLBACK) {
-    return `https://${playHost}/embed/${streamEmbedKind(result)}/${id}`;
-  }
-  return `https://${playHost}/title/${id}`;
+  return `https://${PLAY_HOST}/embed/${streamEmbedKind(result)}/${id}`;
 }
 
 function resultItems() {
@@ -178,8 +155,7 @@ function posterEl(result) {
   return placeholder;
 }
 
-async function renderResults(suggestions) {
-  await playHostPromise;
+function renderResults(suggestions) {
   clearResults();
 
   const titles = suggestions.filter(isTitle);
@@ -302,7 +278,7 @@ async function fetchChart(chartKey, forceRefresh = false) {
   if (!forceRefresh) {
     const cached = readChartCache(chartKey);
     if (cached) {
-      await renderResults(cached);
+      renderResults(cached);
       return;
     }
   }
@@ -335,7 +311,7 @@ async function fetchChart(chartKey, forceRefresh = false) {
     const edges = (((data.data || {}).chartTitles || {}).edges || []);
     const items = edges.map(normalizeChartItem).filter(Boolean);
     writeChartCache(chartKey, items);
-    await renderResults(items);
+    renderResults(items);
   } catch (_) {
     showStatus(`Could not load ${chart.label}. Try again.`, true);
   }
@@ -412,7 +388,7 @@ async function fetchSuggestions(query) {
     if (controller.signal.aborted) return;
 
     const suggestions = data.d || [];
-    await renderResults(suggestions);
+    renderResults(suggestions);
   } catch (err) {
     if (err.name === 'AbortError') {
       if (activeController === controller && controller.timedOut && !controller.superseded) {

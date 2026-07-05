@@ -7,8 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
+
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -24,11 +23,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MobileApp(
                 onOpenTitle = { result ->
-                    lifecycleScope.launch {
-                        startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(PlayUrlResolver.titleUrl(result.id, result.type))),
-                        )
-                    }
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(PlayUrlResolver.titleUrl(result.id, result.type))),
+                    )
                 },
             )
         }
@@ -53,7 +50,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val chartState: StateFlow<LoadState> = _chartState.asStateFlow()
 
     init {
-        viewModelScope.launch { PlayUrlResolver.ensureResolved() }
         loadChart(ChartKind.TopMovies)
     }
 

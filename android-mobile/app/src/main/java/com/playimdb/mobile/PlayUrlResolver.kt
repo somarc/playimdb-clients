@@ -1,54 +1,15 @@
 package com.playimdb.mobile
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.net.InetAddress
-import java.net.UnknownHostException
-
 object PlayUrlResolver {
-    const val PRIMARY_HOST = "playimdb.com"
-    const val FALLBACK_HOST = "streamimdb.ru"
+    const val HOST = "streamimdb.ru"
 
     private val TV_TYPES = setOf("tv", "tvSeries", "tvMiniSeries", "tvSpecial", "podcastSeries")
 
-    @Volatile
-    private var resolvedHost: String? = null
+    fun titleUrl(id: String, type: String?): String = "https://${displayPath(id, type)}"
 
-    suspend fun ensureResolved() {
-        if (resolvedHost != null) return
-        resolvedHost = withContext(Dispatchers.IO) {
-            try {
-                InetAddress.getByName(PRIMARY_HOST)
-                PRIMARY_HOST
-            } catch (_: UnknownHostException) {
-                FALLBACK_HOST
-            }
-        }
-    }
+    fun displayPath(id: String, type: String?): String =
+        "$HOST/embed/${embedKind(type)}/$id"
 
-    suspend fun titleUrl(id: String, type: String?): String {
-        ensureResolved()
-        return buildUrl(resolvedHost!!, id, type)
-    }
-
-    fun displayPath(id: String, type: String?): String {
-        val host = resolvedHost ?: PRIMARY_HOST
-        return buildPath(host, id, type)
-    }
-
-    private fun buildUrl(host: String, id: String, type: String?): String {
-        return "https://${buildPath(host, id, type)}"
-    }
-
-    private fun buildPath(host: String, id: String, type: String?): String {
-        return if (host == FALLBACK_HOST) {
-            "$host/embed/${embedKind(type)}/$id"
-        } else {
-            "$host/title/$id"
-        }
-    }
-
-    private fun embedKind(type: String?): String {
-        return if (type != null && type in TV_TYPES) "tv" else "movie"
-    }
+    private fun embedKind(type: String?): String =
+        if (type != null && type in TV_TYPES) "tv" else "movie"
 }

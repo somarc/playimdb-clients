@@ -51,7 +51,6 @@ class SearchViewModel(
     private var chartJob: Job? = null
 
     init {
-        viewModelScope.launch { PlayUrlResolver.ensureResolved() }
         prefetchCharts()
     }
 

@@ -20,7 +20,6 @@
   "host_permissions": [
     "https://caching.graphql.imdb.com/*",
     "https://v2.sg.media-imdb.com/*",
-    "https://playimdb.com/*",
     "https://streamimdb.ru/*"
   ],
   "permissions": []
